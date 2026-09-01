@@ -12,6 +12,19 @@ type Props = {
 
 const files = ['a','b','c','d','e','f','g','h']
 
+const mateOnePieces: Record<string, string> = {
+  h8: '♚',
+  g6: '♔',
+  f7: '♕',
+}
+
+const pawnPieces: Record<string, string> = {
+  e2: '♙',
+  e7: '♟',
+  e1: '♔',
+  e8: '♚',
+}
+
 function squareName(row: number, col: number) {
   return `${files[col]}${8-row}`
 }
@@ -21,16 +34,17 @@ export function ChessBoard({ mode = 'mate-one', onSolved }: Props) {
   const [solved, setSolved] = useState(false)
   const [message, setMessage] = useState(mode === 'mate-one' ? 'Trắng đi trước. Tìm nước chiếu hết trong 1 nước.' : 'Chọn Tốt trắng ở e2 và đưa nó tiến lên.')
 
-  const pieces = useMemo<Record<string,string>>(() => mode === 'mate-one'
-    ? { h8:'♚', g6:'♔', f7:'♕' }
-    : { e2:'♙', e7:'♟', e1:'♔', e8:'♚' }, [mode])
+  const pieces = useMemo<Record<string, string>>(
+    () => (mode === 'mate-one' ? mateOnePieces : pawnPieces),
+    [mode],
+  )
 
   const [movedPieces, setMovedPieces] = useState<Record<string,string>>(pieces)
 
   function reset() {
     setSelected(null)
     setSolved(false)
-    setMovedPieces(pieces)
+    setMovedPieces({ ...pieces })
     setMessage(mode === 'mate-one' ? 'Trắng đi trước. Tìm nước chiếu hết trong 1 nước.' : 'Chọn Tốt trắng ở e2 và đưa nó tiến lên.')
   }
 
