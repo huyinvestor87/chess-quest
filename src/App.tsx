@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { ChessBoard } from './components/ChessBoard'
 
+type Lesson = 'pawn' | 'mate-one'
+
 const worlds = [
   { icon: '♟️', title: 'Làng Tốt', desc: 'Luật chơi, giá trị quân và cách nhìn bàn cờ', lessons: 8, status: 'Đang học' },
   { icon: '♞', title: 'Rừng Mã', desc: 'Đòn đôi, quân bị treo và những cú nhảy bất ngờ', lessons: 10, status: 'Khóa' },
@@ -20,14 +22,22 @@ const checklist = [
 ]
 
 export function App() {
-  const [activeLesson, setActiveLesson] = useState<'pawn' | 'mate-one'>('pawn')
+  const [activeLesson, setActiveLesson] = useState<Lesson>('pawn')
   const [xp, setXp] = useState(120)
-  const [completed, setCompleted] = useState<string[]>([])
+  const [completed, setCompleted] = useState<Lesson[]>([])
 
-  function reward(key: string, amount: number) {
+  const activeCompleted = completed.includes(activeLesson)
+  const allDone = completed.includes('pawn') && completed.includes('mate-one')
+
+  function reward(key: Lesson, amount: number) {
     if (completed.includes(key)) return
     setCompleted((items) => [...items, key])
     setXp((value) => value + amount)
+  }
+
+  function goToLesson(lesson: Lesson) {
+    setActiveLesson(lesson)
+    requestAnimationFrame(() => document.querySelector('#bai-hoc')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
 
   return (
@@ -50,14 +60,14 @@ export function App() {
           <p>Học đúng nền tảng, luyện chiến thuật, hình thành thói quen suy nghĩ và tiến bộ qua từng thử thách.</p>
           <div className="hero-actions">
             <a className="primary hero-link" href="#bai-hoc">Tiếp tục bài học →</a>
-            <button className="secondary" onClick={() => { setActiveLesson('mate-one'); document.querySelector('#bai-hoc')?.scrollIntoView({ behavior: 'smooth' }) }}>Luyện puzzle</button>
+            <button className="secondary" onClick={() => goToLesson('mate-one')}>Luyện puzzle</button>
           </div>
         </div>
         <div className="mission-card">
           <div className="mission-title">Nhiệm vụ hôm nay</div>
           <div className="mission-big">{completed.length} / 2</div>
           <div className="progress"><span style={{width:`${Math.min(100, completed.length * 50)}%`}} /></div>
-          <p>Hoàn thành bài Tốt và puzzle chiếu hết để nhận XP.</p>
+          <p>{allDone ? '🎉 Hoàn thành nhiệm vụ hôm nay!' : 'Hoàn thành bài Tốt và puzzle chiếu hết để nhận XP.'}</p>
         </div>
       </section>
 
@@ -84,26 +94,30 @@ export function App() {
           <span className="eyebrow">LÀNG TỐT · BÀI TƯƠNG TÁC</span>
           <h2>Học bằng cách tự đi quân</h2>
           <p>Không chỉ đọc lý thuyết. Con phải tự chọn quân và đi nước đúng trên bàn cờ.</p>
+
           <div className="lesson-tabs">
-            <button className={activeLesson === 'pawn' ? 'active' : ''} onClick={() => setActiveLesson('pawn')}>
-              <strong>1. Tốt đi như thế nào?</strong><span>+20 XP</span>
+            <button className={activeLesson === 'pawn' ? 'active' : ''} onClick={() => goToLesson('pawn')}>
+              <strong>{completed.includes('pawn') ? '✓ ' : ''}1. Tốt đi như thế nào?</strong><span>+20 XP</span>
             </button>
-            <button className={activeLesson === 'mate-one' ? 'active' : ''} onClick={() => setActiveLesson('mate-one')}>
-              <strong>2. Chiếu hết trong 1 nước</strong><span>+30 XP</span>
+            <button className={activeLesson === 'mate-one' ? 'active' : ''} onClick={() => goToLesson('mate-one')}>
+              <strong>{completed.includes('mate-one') ? '✓ ' : ''}2. Chiếu hết trong 1 nước</strong><span>+30 XP</span>
             </button>
           </div>
+
           {activeLesson === 'pawn' ? (
-            <div className="lesson-note">
-              <strong>Ghi nhớ</strong>
-              <p>Tốt đi thẳng nhưng ăn chéo. Ở nước đầu tiên, Tốt được đi 1 hoặc 2 ô nếu phía trước không bị chặn.</p>
-            </div>
+            <div className="lesson-note"><strong>Ghi nhớ</strong><p>Tốt đi thẳng nhưng ăn chéo. Ở nước đầu tiên, Tốt được đi 1 hoặc 2 ô nếu phía trước không bị chặn.</p></div>
           ) : (
-            <div className="lesson-note">
-              <strong>Mục tiêu</strong>
-              <p>Tìm nước khiến Vua đen đang bị chiếu và không còn ô hợp lệ để chạy, bắt quân chiếu hoặc che chắn.</p>
-            </div>
+            <div className="lesson-note"><strong>Mục tiêu</strong><p>Tìm nước khiến Vua đen đang bị chiếu và không còn ô hợp lệ để chạy, bắt quân chiếu hoặc che chắn.</p></div>
+          )}
+
+          {activeCompleted && activeLesson === 'pawn' && (
+            <button className="next-lesson" onClick={() => goToLesson('mate-one')}>Bài tiếp theo: Chiếu hết trong 1 nước →</button>
+          )}
+          {activeCompleted && activeLesson === 'mate-one' && (
+            <div className="lesson-complete">🏆 Tuyệt vời! Con đã hoàn thành các bài tương tác hiện có của Làng Tốt.</div>
           )}
         </div>
+
         <ChessBoard
           key={activeLesson}
           mode={activeLesson}
@@ -118,16 +132,14 @@ export function App() {
           <p>ChessQuest sẽ nhắc con theo checklist ở giai đoạn đầu, sau đó giảm dần gợi ý để con hình thành phản xạ độc lập.</p>
           <div className="cct"><strong>CCT</strong><span>Chiếu</span><span>Ăn quân</span><span>Đe dọa</span></div>
         </div>
-        <ol className="checklist">
-          {checklist.map((item, i) => <li key={item}><span>{i+1}</span>{item}</li>)}
-        </ol>
+        <ol className="checklist">{checklist.map((item, i) => <li key={item}><span>{i+1}</span>{item}</li>)}</ol>
       </section>
 
       <section id="tien-do" className="stats">
         <div><strong>{completed.length}</strong><span>Bài tương tác hoàn thành</span></div>
-        <div><strong>{activeLesson === 'mate-one' && completed.includes('mate-one') ? 1 : 0}</strong><span>Puzzle đã giải</span></div>
+        <div><strong>{completed.includes('mate-one') ? 1 : 0}</strong><span>Puzzle đã giải</span></div>
         <div><strong>{xp}</strong><span>Tổng XP</span></div>
-        <div><strong>{completed.length === 2 ? '100%' : completed.length === 1 ? '50%' : '0%'}</strong><span>Nhiệm vụ hôm nay</span></div>
+        <div><strong>{allDone ? '100%' : completed.length === 1 ? '50%' : '0%'}</strong><span>Nhiệm vụ hôm nay</span></div>
       </section>
 
       <footer>ChessQuest · Học cờ vua đúng cách, mỗi ngày một chút. ♟️</footer>
