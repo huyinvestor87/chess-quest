@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ChessBoard } from './components/ChessBoard'
 
-type Lesson = 'pawn' | 'mate-one'
+type Lesson = 'pawn' | 'mate-one' | 'cct-tip'
 
 const worlds = [
   { icon: '♟️', title: 'Làng Tốt', desc: 'Luật chơi, giá trị quân và cách nhìn bàn cờ', lessons: 8, status: 'Đang học' },
@@ -25,9 +25,10 @@ export function App() {
   const [activeLesson, setActiveLesson] = useState<Lesson>('pawn')
   const [xp, setXp] = useState(120)
   const [completed, setCompleted] = useState<Lesson[]>([])
+  const [tipAnswer, setTipAnswer] = useState<string | null>(null)
 
   const activeCompleted = completed.includes(activeLesson)
-  const allDone = completed.includes('pawn') && completed.includes('mate-one')
+  const allDone = completed.includes('pawn') && completed.includes('mate-one') && completed.includes('cct-tip')
 
   function reward(key: Lesson, amount: number) {
     if (completed.includes(key)) return
@@ -38,6 +39,11 @@ export function App() {
   function goToLesson(lesson: Lesson) {
     setActiveLesson(lesson)
     requestAnimationFrame(() => document.querySelector('#bai-hoc')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
+
+  function answerTip(answer: string) {
+    setTipAnswer(answer)
+    if (answer === 'checks') reward('cct-tip', 20)
   }
 
   return (
@@ -65,9 +71,9 @@ export function App() {
         </div>
         <div className="mission-card">
           <div className="mission-title">Nhiệm vụ hôm nay</div>
-          <div className="mission-big">{completed.length} / 2</div>
-          <div className="progress"><span style={{width:`${Math.min(100, completed.length * 50)}%`}} /></div>
-          <p>{allDone ? '🎉 Hoàn thành nhiệm vụ hôm nay!' : 'Hoàn thành bài Tốt và puzzle chiếu hết để nhận XP.'}</p>
+          <div className="mission-big">{completed.length} / 3</div>
+          <div className="progress"><span style={{width:`${Math.min(100, completed.length / 3 * 100)}%`}} /></div>
+          <p>{allDone ? '🎉 Hoàn thành nhiệm vụ hôm nay!' : 'Hoàn thành 2 bài bàn cờ và Tip CCT để nhận XP.'}</p>
         </div>
       </section>
 
@@ -93,7 +99,7 @@ export function App() {
         <div className="lesson-sidebar">
           <span className="eyebrow">LÀNG TỐT · BÀI TƯƠNG TÁC</span>
           <h2>Học bằng cách tự đi quân</h2>
-          <p>Không chỉ đọc lý thuyết. Con phải tự chọn quân và đi nước đúng trên bàn cờ.</p>
+          <p>Không chỉ đọc lý thuyết. Con phải tự chọn quân, đi nước hợp lệ và áp dụng tip tư duy.</p>
 
           <div className="lesson-tabs">
             <button className={activeLesson === 'pawn' ? 'active' : ''} onClick={() => goToLesson('pawn')}>
@@ -102,27 +108,55 @@ export function App() {
             <button className={activeLesson === 'mate-one' ? 'active' : ''} onClick={() => goToLesson('mate-one')}>
               <strong>{completed.includes('mate-one') ? '✓ ' : ''}2. Chiếu hết trong 1 nước</strong><span>+30 XP</span>
             </button>
+            <button className={activeLesson === 'cct-tip' ? 'active' : ''} onClick={() => goToLesson('cct-tip')}>
+              <strong>{completed.includes('cct-tip') ? '✓ ' : ''}3. Tip: CCT trước khi đi quân</strong><span>+20 XP</span>
+            </button>
           </div>
 
-          {activeLesson === 'pawn' ? (
+          {activeLesson === 'pawn' && (
             <div className="lesson-note"><strong>Ghi nhớ</strong><p>Tốt đi thẳng nhưng ăn chéo. Ở nước đầu tiên, Tốt được đi 1 hoặc 2 ô nếu phía trước không bị chặn.</p></div>
-          ) : (
-            <div className="lesson-note"><strong>Mục tiêu</strong><p>Tìm nước khiến Vua đen đang bị chiếu và không còn ô hợp lệ để chạy, bắt quân chiếu hoặc che chắn.</p></div>
+          )}
+          {activeLesson === 'mate-one' && (
+            <div className="lesson-note"><strong>Mục tiêu</strong><p>Chọn Hậu, nhìn các ô được đánh dấu là nước đi hợp lệ, rồi tìm nước chiếu hết thật sự.</p></div>
+          )}
+          {activeLesson === 'cct-tip' && (
+            <div className="lesson-note"><strong>CCT</strong><p>Mỗi lượt, hãy tìm theo thứ tự: Chiếu → Ăn quân → Đe dọa. Đây là một thói quen giúp giảm bỏ sót chiến thuật.</p></div>
           )}
 
           {activeCompleted && activeLesson === 'pawn' && (
             <button className="next-lesson" onClick={() => goToLesson('mate-one')}>Bài tiếp theo: Chiếu hết trong 1 nước →</button>
           )}
           {activeCompleted && activeLesson === 'mate-one' && (
-            <div className="lesson-complete">🏆 Tuyệt vời! Con đã hoàn thành các bài tương tác hiện có của Làng Tốt.</div>
+            <button className="next-lesson" onClick={() => goToLesson('cct-tip')}>Học Tip tiếp theo: CCT →</button>
+          )}
+          {activeCompleted && activeLesson === 'cct-tip' && (
+            <div className="lesson-complete">🏆 Tuyệt vời! Con đã hoàn thành 3 bài đầu. Bài tiếp theo sẽ mở rộng sang quân bị treo và đòn đôi.</div>
           )}
         </div>
 
-        <ChessBoard
-          key={activeLesson}
-          mode={activeLesson}
-          onSolved={() => reward(activeLesson, activeLesson === 'pawn' ? 20 : 30)}
-        />
+        {activeLesson === 'cct-tip' ? (
+          <div className="tip-challenge">
+            <span className="eyebrow">TIP NHANH</span>
+            <h3>Trước khi nghĩ đến nước “hay”, nên tìm gì trước?</h3>
+            <p>Chọn đáp án đúng theo nguyên tắc CCT.</p>
+            <div className="tip-options">
+              <button onClick={() => answerTip('develop')}>Phát triển quân bất kỳ</button>
+              <button onClick={() => answerTip('checks')}>Các nước chiếu</button>
+              <button onClick={() => answerTip('queen')}>Đưa Hậu ra sớm</button>
+            </div>
+            {tipAnswer && (
+              <div className={`tip-result ${tipAnswer === 'checks' ? 'correct' : 'wrong'}`}>
+                {tipAnswer === 'checks' ? '✓ Đúng! Trong CCT, hãy quét các nước Chiếu trước.' : 'Chưa đúng. Hãy nhớ thứ tự: Chiếu → Ăn quân → Đe dọa.'}
+              </div>
+            )}
+          </div>
+        ) : (
+          <ChessBoard
+            key={activeLesson}
+            mode={activeLesson}
+            onSolved={() => reward(activeLesson, activeLesson === 'pawn' ? 20 : 30)}
+          />
+        )}
       </section>
 
       <section id="luyen-tap" className="thinking-section">
@@ -139,7 +173,7 @@ export function App() {
         <div><strong>{completed.length}</strong><span>Bài tương tác hoàn thành</span></div>
         <div><strong>{completed.includes('mate-one') ? 1 : 0}</strong><span>Puzzle đã giải</span></div>
         <div><strong>{xp}</strong><span>Tổng XP</span></div>
-        <div><strong>{allDone ? '100%' : completed.length === 1 ? '50%' : '0%'}</strong><span>Nhiệm vụ hôm nay</span></div>
+        <div><strong>{Math.round(completed.length / 3 * 100)}%</strong><span>Nhiệm vụ hôm nay</span></div>
       </section>
 
       <footer>ChessQuest · Học cờ vua đúng cách, mỗi ngày một chút. ♟️</footer>
